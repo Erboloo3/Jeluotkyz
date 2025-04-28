@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    // ??????? CUDA ????
+   
     int Nx = 100000;
     double Lx = 100.0;
     double Lt = 0.025;
@@ -73,11 +73,11 @@ int main(int argc, char** argv) {
     int offset = rank * local_Nx + min(rank, remainder);
     if (rank < remainder) local_Nx++;
 
-    // ???????????????????
+   
     vector<double> u_prev(local_Nx + 1, 0.0);
     vector<double> u_curr(local_Nx + 1, 0.0);
 
-    // ??????
+    
     for (int j = 0; j <= local_Nx; j++) {
         double x = (offset + j) * dx;
         u_prev[j] = x * (1 - x);
@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
     duration<double> elapsed = end - start;
 
 
-    // ???????????
+    
     double max_elapsed = 0.0;
     double elapsed_time = elapsed.count();
     MPI_Reduce(&elapsed_time, &max_elapsed, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
@@ -182,7 +182,7 @@ int main(int argc, char** argv) {
         cout << "Computation Time (MPI+CUDA): " << max_elapsed << " seconds" << endl;
     }
 
-    // ?????????
+   
     if (rank == 0) {
         ofstream output_file("execution_times_mpi_cuda.csv", ios::app);
         if (output_file.is_open()) {
@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
     cudaFree(d_u_prev);
     cudaFree(d_u_curr);
 
-    // ??????????????
+ 
     vector<double> exact(local_Nx + 1, 0.0);
     vector<double> errors(local_Nx + 1, 0.0);
     double t_final = Nt * dt;
