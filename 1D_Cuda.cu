@@ -28,13 +28,13 @@ __global__ void heat_equation_kernel(double* u_prev, double* u_curr, double r, i
 }
 
 int main() {
-    int Nx = 100000;  // ??? 100000
+    int Nx = 100000;  
     double Lx = 100.0;
-    double Lt = 0.025;  // ? MPI ??
-    double r = 0.5;     // ?????? MPI ??
+    double Lt = 0.025;  
+    double r = 0.5;    
     double dx = Lx / Nx;
-    double dt = r * dx * dx;  // ?? dt
-    int Nt = Lt / dt;         // ?? Nt
+    double dt = r * dx * dx;  
+    int Nt = Lt / dt;         
 
     if (r > 0.5) {
         cerr << "Error: Stability condition not met (r <= 0.5)." << endl;
@@ -43,11 +43,11 @@ int main() {
 
     cout << "Nx: " << Nx << ", Nt: " << Nt << ", dx: " << dx << ", dt: " << dt << ", r: " << r << endl;
 
-    // ?? CPU ????????????????
+    
     vector<double> u_initial(Nx + 1, 0.0);
     vector<double> u_final(Nx + 1, 0.0);
 
-    // ??????
+   
     for (int j = 0; j <= Nx; j++) {
         double x = j * dx;
         u_initial[j] = x * (1 - x);
@@ -55,45 +55,44 @@ int main() {
     u_initial[0] = 0.0;
     u_initial[Nx] = 0.0;
 
-    // ?? GPU ??
+    
     double* d_u_prev, * d_u_curr;
     cudaMalloc((void**)&d_u_prev, (Nx + 1) * sizeof(double));
     cudaMalloc((void**)&d_u_curr, (Nx + 1) * sizeof(double));
 
-    // ???????? GPU
+    
     cudaMemcpy(d_u_prev, u_initial.data(), (Nx + 1) * sizeof(double), cudaMemcpyHostToDevice);
 
     auto start = high_resolution_clock::now();
 
-    // CUDA ????????
+    
     int blockSize = 256;
     int numBlocks = (Nx + blockSize - 1) / blockSize;
 
-    // ?????
+    
     for (int i = 1; i <= Nt; i++) {
         heat_equation_kernel << <numBlocks, blockSize >> > (d_u_prev, d_u_curr, r, Nx);
         cudaDeviceSynchronize();
 
-        // ????
         double* temp = d_u_prev;
         d_u_prev = d_u_curr;
         d_u_curr = temp;
     }
 
-    // ???????????? CPU
+   
     cudaMemcpy(u_final.data(), d_u_prev, (Nx + 1) * sizeof(double), cudaMemcpyDeviceToHost);
 
     auto end = high_resolution_clock::now();
     duration<double> elapsed = end - start;
     cout << "Computation Time (CUDA): " << elapsed.count() << " seconds" << endl;
 
-    // ??????????? MPI ?????
+   
     ofstream output_file("execution_times_cuda.csv", ios::app);
     if (output_file.is_open()) {
         if (output_file.tellp() == 0) {
             output_file << "Process,Time,Nx\n";
         }
-        output_file << 1 << "," << elapsed.count() << "," << Nx << "\n";  // CUDA ??????Process ?? 1
+        output_file << 1 << "," << elapsed.count() << "," << Nx << "\n";  
         output_file.close();
         cout << "Execution time saved to execution_times_cuda.csv" << endl;
     }
@@ -101,11 +100,11 @@ int main() {
         cerr << "Error opening execution_times_cuda.csv!" << endl;
     }
 
-    // ?? GPU ??
+   
     cudaFree(d_u_prev);
     cudaFree(d_u_curr);
 
-    // ??????????????????
+    
     vector<double> exact_final(Nx + 1, 0.0);
     vector<double> errors_final(Nx + 1, 0.0);
     double t_final = Nt * dt;
@@ -116,7 +115,7 @@ int main() {
         errors_final[j] = u_final[j] - ex;
     }
 
-    // ?????????????????????
+    
     cout << "Last time step data collected successfully." << endl;
 
     return 0;
